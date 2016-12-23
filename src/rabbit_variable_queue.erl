@@ -41,7 +41,6 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 -define(QUEUE_MIGRATION_BATCH_SIZE, 100).
--define(MSG_STORE_RESTORE_BATCH_SIZE, 100).
 
 %%----------------------------------------------------------------------------
 %% Messages, and their position in the queue, can be in memory or on
@@ -505,7 +504,7 @@ start_msg_store(Refs, StartFunState) when is_map(Refs); Refs == undefined ->
     %% Start message store for all known vhosts
     VHosts = rabbit_vhost:list(),
     RestoreBatchSize = application:get_env(rabbit, msg_store_restore_batch_size,
-                                           ?MSG_STORE_RESTORE_BATCH_SIZE),
+                                           erlang:system_info(schedulers)),
     in_batches(RestoreBatchSize,
                {rabbit_variable_queue, add_vhost_msg_store, []},
                VHosts,
