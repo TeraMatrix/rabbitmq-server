@@ -58,6 +58,8 @@
 -rabbit_upgrade({operator_policies,     mnesia, [slave_pids_pending_shutdown, internal_system_x]}).
 -rabbit_upgrade({vhost_limits,          mnesia, []}).
 -rabbit_upgrade({queue_vhost_field,     mnesia, [operator_policies]}).
+-rabbit_upgrade({queue_options,         mnesia, [queue_vhost_field]}).
+-rabbit_upgrade({exchange_options,      mnesia, [operator_policies]}).
 
 %% -------------------------------------------------------------------
 
@@ -94,6 +96,8 @@
 -spec vhost_limits() -> 'ok'.
 -spec operator_policies() -> 'ok'.
 -spec queue_vhost_field() -> 'ok'.
+-spec queue_options() -> 'ok'.
+-spec exchange_options() -> 'ok'.
 
 
 %%--------------------------------------------------------------------
@@ -552,6 +556,25 @@ queue_vhost_field(Table) ->
        sync_slave_pids, recoverable_slaves, policy, operator_policy,
        gm_pids, decorators, state, policy_version, slave_pids_pending_shutdown, vhost]).
 
+queue_options() ->
+    ok = queue_options(rabbit_queue),
+    ok = queue_options(rabbit_durable_queue),
+    ok.
+
+queue_options(Table) ->
+    transform(
+      Table,
+      fun ({amqqueue, Name, Durable, AutoDelete, ExclusiveOwner, Arguments,
+            Pid, SlavePids, SyncSlavePids, DSN, Policy, OperatorPolicy, GmPids, Decorators,
+            State, PolicyVersion, SlavePidsPendingShutdown, VHost}) ->
+              {amqqueue, Name, Durable, AutoDelete, ExclusiveOwner, Arguments,
+               Pid, SlavePids, SyncSlavePids, DSN, Policy, OperatorPolicy, GmPids, Decorators,
+               State, PolicyVersion, SlavePidsPendingShutdown, VHost, #{}}
+      end,
+      [name, durable, auto_delete, exclusive_owner, arguments, pid, slave_pids,
+       sync_slave_pids, recoverable_slaves, policy, operator_policy,
+       gm_pids, decorators, state, policy_version, slave_pids_pending_shutdown, vhost, options]).
+
 %% Prior to 3.6.0, passwords were hashed using MD5, this populates
 %% existing records with said default.  Users created with 3.6.0+ will
 %% have internal_user.hashing_algorithm populated by the internal
@@ -563,6 +586,21 @@ user_password_hashing() ->
               {internal_user, Username, Hash, Tags, rabbit_password_hashing_md5}
       end,
       [username, password_hash, tags, hashing_algorithm]).
+
+exchange_options() ->
+    ok = exchange_options(rabbit_exchange),
+    ok = exchange_options(rabbit_durable_exchange).
+
+exchange_options(Table) ->
+    transform(
+      Table,
+      fun ({exchange, Name, Type, Dur, AutoDel, Internal,
+            Args, Scratches, Policy, OperatorPolicy, Decorators}) ->
+              {exchange, Name, Type, Dur, AutoDel, Internal,
+               Args, Scratches, Policy, OperatorPolicy, Decorators, #{}}
+      end,
+      [name, type, durable, auto_delete, internal, arguments, scratches, policy,
+       operator_policy, decorators, options]).
 
 %%--------------------------------------------------------------------
 
